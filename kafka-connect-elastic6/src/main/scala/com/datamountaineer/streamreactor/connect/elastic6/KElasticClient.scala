@@ -31,6 +31,7 @@ import org.apache.http.client.config.RequestConfig.Builder
 import org.apache.http.impl.client.BasicCredentialsProvider
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
 import org.apache.http.auth.{UsernamePasswordCredentials, AuthScope}
+import java.time.Clock
 
 import scala.concurrent.Future
 
@@ -81,7 +82,7 @@ class TcpKElasticClient(client: TcpClient) extends KElasticClient {
   override def index(kcql: Kcql): Unit = {
     require(kcql.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${kcql.getTarget}")
 
-    val indexName = getIndexName(kcql)
+    val indexName = getIndexName(kcql, Clock.systemUTC())
     client.execute {
       Option(kcql.getDocType) match {
         case None => createIndex(indexName)
@@ -103,7 +104,7 @@ class HttpKElasticClient(client: HttpClient) extends KElasticClient {
   override def index(kcql: Kcql): Unit = {
     require(kcql.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${kcql.getTarget}")
 
-    val indexName = getIndexName(kcql)
+    val indexName = getIndexName(kcql, Clock.systemUTC())
     client.execute {
       Option(kcql.getDocType) match {
         case None => createIndex(indexName)

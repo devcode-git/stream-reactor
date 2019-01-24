@@ -17,14 +17,15 @@
 package com.datamountaineer.streamreactor.connect.elastic6.indexname
 
 import com.datamountaineer.kcql.Kcql
+import java.time.Clock
 
 /**
   * Creates the index for the given KCQL configuration.
   */
 object CreateIndex {
-  def getIndexName(kcql: Kcql): String = {
+  def getIndexName(kcql: Kcql, clock: Clock): String = {
     Option(kcql.getIndexSuffix).fold(kcql.getTarget) { indexNameSuffix =>
-      s"${kcql.getTarget}${CustomIndexName.parseIndexName(indexNameSuffix)}"
+      s"${kcql.getTarget}${CustomIndexName.parseIndexName(indexNameSuffix, clock)}"
     }
   }
 }

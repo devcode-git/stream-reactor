@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.landoop.sql.Field
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Indexable
+import com.sksamuel.elastic4s.bulk.RichBulkResponse
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
@@ -36,6 +37,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
   extends ErrorHandler with StrictLogging with ConverterUtil {
@@ -102,8 +108,6 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
 
         //we might have multiple inserts from the same Kafka Message
         kcqls.flatMap { kcql =>
-          val i = CreateIndex.getIndexName(kcql)
-          val documentType = Option(kcql.getDocType).getOrElse(i)
           val kcqlValue = kcqlMap(kcql)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
@@ -115,7 +119,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                     r.valueSchema(),
                     r.value(),
                     kcql.hasRetainStructure
-                  ), Seq.empty)
+                  ), if (settings.pkFromKey) List(r.key()) else Seq.empty)
                 } else {
                   TransformAndExtractPK(
                     kcqlValue.fields,
@@ -125,8 +129,18 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                     r.value(),
                     kcql.hasRetainStructure)
                 }
-                val idFromPk = pks.mkString(settings.pkJoinerSeparator)
 
+                val timestampField = Option(settings.timestampField)
+                val clock = if (timestampField.isEmpty) {
+                  Clock.systemUTC()
+                } else {
+                  val created = json.get(timestampField.get).textValue()
+                  val timeFormatter = DateTimeFormatter.ofPattern(settings.timestampFieldFormat);
+                  Clock.fixed(OffsetDateTime.parse(created, timeFormatter).toInstant(), ZoneOffset.UTC)
+                }
+                val i = CreateIndex.getIndexName(kcql, clock)
+                val documentType = Option(kcql.getDocType).getOrElse(i)
+                val idFromPk = pks.mkString(settings.pkJoinerSeparator)
                 kcql.getWriteMode match {
                   case WriteModeEnum.INSERT =>
                     indexInto(i / documentType)
@@ -142,16 +156,24 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                 }
               }
 
-              client.execute(bulk(indexes).refreshImmediately)
+              client.execute(bulk(indexes))
             }
         }
     }
 
-    handleTry(
+    val res = handleTry(
       Try(
         Await.result(Future.sequence(fut), settings.writeTimeout.seconds)
       )
     )
+
+    res.map {
+      _.foreach(_ match { 
+        case r:RichBulkResponse =>  if(r.hasFailures) settings.errorPolicy.handle(new IllegalArgumentException(r.failureMessage))
+        case _ =>
+      })
+    }
+
   }
 
   /**

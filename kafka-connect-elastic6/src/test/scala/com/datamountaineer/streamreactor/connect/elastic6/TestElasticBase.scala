@@ -37,6 +37,8 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   val TOPIC = "sink_test"
   val INDEX = "index_andrew"
   val INDEX_WITH_DATE = s"${INDEX}_${LocalDateTime.now.format(ofPattern("YYYY-MM-dd"))}"
+  val INDEX_WITH_DATE_2001_02_03 = s"${INDEX}_2001-02-03"
+
   //var TMP : File = _
   val QUERY = s"INSERT INTO $INDEX SELECT * FROM $TOPIC"
   val QUERY_PK = s"INSERT INTO $INDEX SELECT * FROM $TOPIC PK id"
@@ -75,6 +77,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       .field("int_field", Schema.INT32_SCHEMA)
       .field("long_field", Schema.INT64_SCHEMA)
       .field("string_field", Schema.STRING_SCHEMA)
+      .field("string_timestamp", SchemaBuilder.string.optional.build())
       .build
   }
 
@@ -85,6 +88,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       .field("int_field", Schema.INT32_SCHEMA)
       .field("long_field", Schema.INT64_SCHEMA)
       .field("string_field", Schema.STRING_SCHEMA)
+      .field("string_timestamp", SchemaBuilder.string.optional.build())
       .field("nested", createSchema)
       .build
   }
@@ -95,11 +99,14 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       .put("int_field", 11)
       .put("long_field", 11L)
       .put("string_field", "11")
+      .put("string_timestamp", "2001-02-03T00:01:02.003+0000")
       .put("nested", new Struct(createSchema)
         .put("id", id)
         .put("int_field", 21)
         .put("long_field", 21L)
         .put("string_field", "21"))
+        .put("string_timestamp", "2001-02-03T00:01:02.003+0000")
+
   }
 
   //build a test record
@@ -109,6 +116,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       .put("int_field", 12)
       .put("long_field", 12L)
       .put("string_field", "foo")
+      .put("string_timestamp", "2001-02-03T00:01:02.003+0000")
   }
 
   //generate some test records
@@ -119,7 +127,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     assignment.flatMap(a => {
       (1 to 7).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key-" + a.partition() + "-" + i, schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toVector
   }
@@ -131,7 +139,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     assignment.flatMap(a => {
       (1 to 7).map(i => {
         val record: Struct = createRecordNested(a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key-" + a.partition() + "-" + i, schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toVector
   }
@@ -143,7 +151,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     assignment.flatMap(a => {
       (1 to 2).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key-" + a.partition() + "-" + i, schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toVector
   }
@@ -155,13 +163,17 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     assignment.flatMap(a => {
       (1 to 2).map(i => {
         val record: Struct = createRecordNested(a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key-" + a.partition() + "-" + i, schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toVector
   }
 
   def getElasticSinkConfigProps = {
     getBaseElasticSinkConfigProps(QUERY)
+  }
+
+  def getElasticSinkConfigPropsPkFromKey = {
+    getBaseElasticSinkConfigProps(QUERY, true)
   }
 
   def getElasticSinkConfigPropsSelection = {
@@ -180,22 +192,24 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     getBaseElasticSinkConfigProps(UPDATE_QUERY_SELECTION)
   }
 
-  def getBaseElasticSinkConfigProps(query: String) = {
+  def getBaseElasticSinkConfigProps(query: String, pkFromKey: Boolean = false) = {
     Map(
       "topics" -> TOPIC,
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticConfigConstants.KCQL -> query
+      ElasticConfigConstants.KCQL -> query,
+      ElasticConfigConstants.PK_FROM_KEY -> (if (pkFromKey) "true" else "false")
     ).asJava
   }
 
-  def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean) = {
+  def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean, field: String = null) = {
     Map(
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticConfigConstants.KCQL -> (QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}")
+      ElasticConfigConstants.KCQL -> (QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}"),
+      ElasticConfigConstants.TIMESTAMP_FIELD -> (if (Option(field).isEmpty) null else field)
     ).asJava
   }
 

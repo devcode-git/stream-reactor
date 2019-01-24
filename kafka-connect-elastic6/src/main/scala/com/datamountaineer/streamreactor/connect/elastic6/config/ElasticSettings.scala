@@ -39,7 +39,10 @@ case class ElasticSettings(kcqls: Seq[Kcql],
                            batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT,
                            pkJoinerSeparator: String = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT,
                            httpBasicAuthUsername: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
-                           httpBasicAuthPassword: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT
+                           httpBasicAuthPassword: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
+                           timestampField: String = ElasticConfigConstants.TIMESTAMP_FIELD_DEFAULT,
+                           timestampFieldFormat: String = ElasticConfigConstants.TIMESTAMP_FIELD_FORMAT_DEFAULT,
+                           pkFromKey: Boolean = ElasticConfigConstants.PK_FROM_KEY_DEFAULT
                           )
 
 
@@ -55,6 +58,9 @@ object ElasticSettings {
     val httpBasicAuthUsername = config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME)
     val httpBasicAuthPassword = config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD)
     val rawXPack = Option(config.getPassword(ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS))
+    val timestampField = config.getString(ElasticConfigConstants.TIMESTAMP_FIELD)
+    val timestampFieldFormat = config.getString(ElasticConfigConstants.TIMESTAMP_FIELD_FORMAT)
+    val pkFromKey = config.getBoolean(ElasticConfigConstants.PK_FROM_KEY)
 
     val xPackSettings = rawXPack
       .map { password =>
@@ -99,7 +105,10 @@ object ElasticSettings {
       batchSize,
       pkJoinerSeparator,
       httpBasicAuthUsername,
-      httpBasicAuthPassword
+      httpBasicAuthPassword,
+      timestampField,
+      timestampFieldFormat,
+      pkFromKey
     )
   }
 }

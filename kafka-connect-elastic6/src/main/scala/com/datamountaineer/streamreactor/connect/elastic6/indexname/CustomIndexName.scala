@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.elastic6.indexname
 
 import scala.annotation.tailrec
+import java.time.Clock
 
 class InvalidCustomIndexNameException(message: String) extends RuntimeException(message)
 
@@ -27,7 +28,7 @@ case class CustomIndexName(fragments: Vector[IndexNameFragment]) {
 object CustomIndexName {
 
   @tailrec
-  private def parseIndexName(remainingChars: Vector[Char], currentFragment: StringBuilder, results: Vector[Option[IndexNameFragment]]): Vector[IndexNameFragment] =
+  private def parseIndexName(remainingChars: Vector[Char], currentFragment: StringBuilder, results: Vector[Option[IndexNameFragment]], clock: Clock): Vector[IndexNameFragment] =
     remainingChars match {
       case head +: rest => head match {
         case DateTimeFragment.OpeningChar =>
@@ -37,17 +38,17 @@ object CustomIndexName {
           val maybeCurrentFragment = currentFragment.mkString.toOption
           val maybeDateTimeFormat = dateTimeFormat.mkString.toOption
 
-          val newResultsWithDateTimeFragment = results :+ maybeCurrentFragment.map(TextFragment.apply) :+ maybeDateTimeFormat.map(DateTimeFragment(_))
+          val newResultsWithDateTimeFragment = results :+ maybeCurrentFragment.map(TextFragment.apply) :+ maybeDateTimeFormat.map(DateTimeFragment(_, clock))
 
-          parseIndexName(afterDateTimeFormat, new StringBuilder, newResultsWithDateTimeFragment)
+          parseIndexName(afterDateTimeFormat, new StringBuilder, newResultsWithDateTimeFragment, clock)
         case DateTimeFragment.ClosingChar => throw new InvalidCustomIndexNameException(s"Found closing '${DateTimeFragment.ClosingChar}' but no opening character")
-        case anyOtherChar => parseIndexName(rest, currentFragment.append(anyOtherChar), results)
+        case anyOtherChar => parseIndexName(rest, currentFragment.append(anyOtherChar), results, clock)
       }
       case Vector() =>
         val maybeCurrentFragment = currentFragment.mkString.toOption
         (results :+ maybeCurrentFragment.map(TextFragment.apply)).flatten
     }
 
-  def parseIndexName(indexName: String): CustomIndexName =
-    CustomIndexName(parseIndexName(indexName.toVector, new StringBuilder, Vector.empty))
+  def parseIndexName(indexName: String, clock: Clock): CustomIndexName =
+    CustomIndexName(parseIndexName(indexName.toVector, new StringBuilder, Vector.empty, clock))
 }

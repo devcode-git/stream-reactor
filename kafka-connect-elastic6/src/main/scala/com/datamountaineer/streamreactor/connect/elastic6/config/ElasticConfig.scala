@@ -152,6 +152,36 @@ object ElasticConfig {
       ConfigDef.Width.SHORT,
       ElasticConfigConstants.PK_JOINER_SEPARATOR)
     .define(
+      ElasticConfigConstants.TIMESTAMP_FIELD,
+      Type.STRING,
+      ElasticConfigConstants.TIMESTAMP_FIELD_DEFAULT,
+      Importance.LOW,
+      ElasticConfigConstants.TIMESTAMP_FIELD_DOC,
+      "KCQL",
+      3,
+      ConfigDef.Width.LONG,
+      ElasticConfigConstants.TIMESTAMP_FIELD)
+    .define(
+      ElasticConfigConstants.TIMESTAMP_FIELD_FORMAT,
+      Type.STRING,
+      ElasticConfigConstants.TIMESTAMP_FIELD_FORMAT_DEFAULT,
+      Importance.LOW,
+      ElasticConfigConstants.TIMESTAMP_FIELD_FORMAT_DOC,
+      "KCQL",
+      4,
+      ConfigDef.Width.LONG,
+      ElasticConfigConstants.TIMESTAMP_FIELD_FORMAT)
+    .define(
+      ElasticConfigConstants.PK_FROM_KEY,
+      Type.BOOLEAN,
+      ElasticConfigConstants.PK_FROM_KEY_DEFAULT,
+      Importance.LOW,
+      ElasticConfigConstants.PK_FROM_KEY_DOC,
+      "KCQL",
+      5,
+      ConfigDef.Width.SHORT,
+      ElasticConfigConstants.PK_FROM_KEY)
+    .define(
       ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS,
       Type.PASSWORD,
       ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS_DEFAULT,

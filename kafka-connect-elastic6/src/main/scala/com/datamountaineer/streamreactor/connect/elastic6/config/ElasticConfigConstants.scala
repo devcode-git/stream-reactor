@@ -106,4 +106,20 @@ object ElasticConfigConstants {
   val PK_JOINER_SEPARATOR_DOC = "Separator used when have more that one field in PK"
   val PK_JOINER_SEPARATOR_DEFAULT = "-"
   val PK_JOINER_SEPARATOR_DISPLAY = "PK joiner separator"
+
+  val TIMESTAMP_FIELD = s"$CONNECTOR_PREFIX.timestamp.field"
+  val TIMESTAMP_FIELD_DOC = "The value field to use as a source for the timestamp in the index suffix"
+  val TIMESTAMP_FIELD_DEFAULT: String = null
+  val TIMESTAMP_FIELD_DISPLAY = "Timestamp value field"
+
+  val TIMESTAMP_FIELD_FORMAT = s"$CONNECTOR_PREFIX.timestamp.field.format"
+  val TIMESTAMP_FIELD_FORMAT_DOC = "A SimpleDateFormat-compatible format for the value timestamp field."
+  val TIMESTAMP_FIELD_FORMAT_DEFAULT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+  val TIMESTAMP_FIELD_FORMAT_DISPLAY = "Timestamp value field format"
+
+  val PK_FROM_KEY = s"$CONNECTOR_PREFIX.pk.from.key"
+  val PK_FROM_KEY_DOC = "Use message key as PK"
+  val PK_FROM_KEY_DEFAULT = false
+  val PK_FROM_KEY_DISPLAY = "Message key as PK"
+
 }

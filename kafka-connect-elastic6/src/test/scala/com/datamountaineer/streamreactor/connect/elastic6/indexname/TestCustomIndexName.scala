@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.elastic6.indexname
 
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, TableDrivenPropertyChecks}
 import org.scalatest.{FlatSpec, Matchers}
+import java.time.Clock
 
 class TestCustomIndexName extends FlatSpec with TableDrivenPropertyChecks with GeneratorDrivenPropertyChecks with Matchers {
 
@@ -42,14 +43,14 @@ class TestCustomIndexName extends FlatSpec with TableDrivenPropertyChecks with G
 
   "Custom index name" should "parse a valid String with date time formatting options" in {
     forAll (ValidIndexNames) { case (validIndexName, expectations) =>
-      CustomIndexName.parseIndexName(validIndexName) shouldBe CustomIndexName(expectations)
+      CustomIndexName.parseIndexName(validIndexName, Clock.systemUTC()) shouldBe CustomIndexName(expectations)
     }
   }
 
   it should "throw an exception when using invalid index name" in {
     forAll (InvalidIndexNames) { case (invalidIndexName) =>
       intercept[InvalidCustomIndexNameException] {
-        CustomIndexName.parseIndexName(invalidIndexName)
+        CustomIndexName.parseIndexName(invalidIndexName, Clock.systemUTC())
       }
     }
   }
