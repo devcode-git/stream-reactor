@@ -85,10 +85,10 @@ class TcpKElasticClient(client: TcpClient) extends KElasticClient {
     val indexName = getIndexName(kcql, Clock.systemUTC())
     client.execute {
       Option(kcql.getDocType) match {
-        case None => createIndex(indexName)
+        case None => createIndex(indexName)//.indexSetting("blocks.read_only", true)
         case Some(documentType) => createIndex(indexName).mappings(MappingDefinition(documentType))
       }
-    }
+    }.await
   }
 
   override def execute(definition: BulkDefinition): Future[Any] = client.execute(definition)
@@ -107,10 +107,10 @@ class HttpKElasticClient(client: HttpClient) extends KElasticClient {
     val indexName = getIndexName(kcql, Clock.systemUTC())
     client.execute {
       Option(kcql.getDocType) match {
-        case None => createIndex(indexName)
+        case None => createIndex(indexName)//.indexSetting("blocks.read_only", true)
         case Some(documentType) => createIndex(indexName).mappings(MappingDefinition(documentType))
       }
-    }
+    }.await
   }
 
   override def execute(definition: BulkDefinition): Future[Any] = client.execute(definition)

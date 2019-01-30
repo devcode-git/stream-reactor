@@ -29,6 +29,9 @@ import com.landoop.sql.Field
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Indexable
 import com.sksamuel.elastic4s.bulk.RichBulkResponse
+import com.sksamuel.elastic4s.http.bulk.BulkResponse
+import com.sksamuel.elastic4s.http.RequestSuccess
+
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
@@ -169,7 +172,26 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
 
     res.map {
       _.foreach(_ match { 
-        case r:RichBulkResponse =>  if(r.hasFailures) settings.errorPolicy.handle(new IllegalArgumentException(r.failureMessage))
+        case r:RichBulkResponse => {
+          if (r.hasFailures) settings.errorPolicy.handle(new IllegalArgumentException(r.failureMessage))
+        }
+        case Right(r:RequestSuccess[BulkResponse]) => {
+          if (r.result.hasFailures) {
+            val failureMessage = r.result.failures.foldLeft(new StringBuilder){ (sb, s) => { 
+                sb append "\nindex ["
+                sb append s.index
+                sb append "], type ["
+                sb append s.`type`
+                sb append "], id ["
+                sb append s.id
+                sb append "], message ["
+                sb append s.error.getOrElse("")
+                sb append "]"
+              }
+            }.toString
+            settings.errorPolicy.handle(new IllegalArgumentException(failureMessage))
+          }
+        }
         case _ =>
       })
     }

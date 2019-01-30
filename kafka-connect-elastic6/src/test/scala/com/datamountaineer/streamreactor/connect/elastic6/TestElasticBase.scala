@@ -224,7 +224,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticConfigConstants.KCQL -> QUERY,
+      ElasticConfigConstants.KCQL -> (QUERY + (if (autoCreate) " AUTOCREATE " else "")),
       ElasticConfigConstants.CLIENT_TYPE_CONFIG -> ClientType.HTTP.toString,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME -> (if (auth) BASIC_AUTH_USERNAME else ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT),
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD -> (if (auth) BASIC_AUTH_PASSWORD else ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT)
