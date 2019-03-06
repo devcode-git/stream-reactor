@@ -155,7 +155,8 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                     require(pks.nonEmpty, "Error extracting primary keys")
                     update(idFromPk)
                       .in(i / documentType)
-                      .docAsUpsert(json)(IndexableJsonNode)
+                      .docAsUpsert(json) (IndexableJsonNode)
+                      .retryOnConflict(5)
                 }
               }
 
